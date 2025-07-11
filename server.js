@@ -1,36 +1,40 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const { Configuration, OpenAIApi } = require('openai');
-require('dotenv').config();
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+require("dotenv").config();
+
+const OpenAI = require("openai"); // ✅ NEW syntax for v4
 
 const app = express();
+const port = process.env.PORT || 3000;
+
 app.use(cors());
 app.use(bodyParser.json());
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // 🔐 set this in Render
 });
-const openai = new OpenAIApi(configuration);
 
-app.post('/api/chat', async (req, res) => {
-  const { message } = req.body;
+app.get("/", (req, res) => {
+  res.send("✅ NexoraBot backend is running.");
+});
+
+app.post("/api/chat", async (req, res) => {
+  const userMessage = req.body.message;
+
   try {
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: 'You are Nexora Digital’s helpful assistant. Be concise, professional, and explain Nexora services clearly.' },
-        { role: 'user', content: message }
-      ]
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: userMessage }],
     });
-    res.json({ reply: completion.data.choices[0].message.content });
-  } catch (error) {
-    console.error('OpenAI error:', error.message);
-    res.status(500).json({ error: 'OpenAI request failed' });
+
+    res.json({ reply: completion.choices[0].message.content });
+  } catch (err) {
+    console.error("OpenAI API error:", err.message);
+    res.status(500).json({ reply: "⚠️ NexoraBot had an issue." });
   }
 });
 
-app.get('/', (req, res) => res.send('NexoraBot backend is running'));
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(port, () => {
+  console.log(`🚀 NexoraBot backend running on port ${port}`);
+});
